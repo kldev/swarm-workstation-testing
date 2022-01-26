@@ -1,0 +1,47 @@
+version: "3.7"
+
+services:
+  board:
+    container_name: focalboard
+    image: mattermost/focalboard:0.12.1
+    depends_on:
+      - focalboard-db
+    environment:
+      - VIRTUAL_HOST=localhost
+      - VIRTUAL_PORT=8000
+      - VIRTUAL_PROTO=http
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager         
+      labels:        
+        - traefik.enable=true                        
+        - traefik.docker.network=traefik-public
+        - traefik.constraint-label=traefik-public           
+        - traefik.http.routers.${NAME:-board}-http.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.${NAME:-board}-http.service=${NAME:-board}
+        - traefik.http.routers.${NAME:-board}-http.entrypoints=web           
+        - traefik.http.services.${NAME:-board}.loadbalancer.server.port=8000      
+    volumes:
+      - "./config.json:/opt/focalboard/config.json"    
+    networks:      
+      - traefik-public 
+      - db
+
+  focalboard-db:
+    image: postgres:13.5
+    container_name: focalboard-postgres    
+    volumes:
+      - data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: boards
+      POSTGRES_USER: boardsuser
+      POSTGRES_PASSWORD: boardsuser-password  
+    networks:
+      - db
+volumes:
+  data:      
+networks:  
+  db:
+  traefik-public:
+    external: true

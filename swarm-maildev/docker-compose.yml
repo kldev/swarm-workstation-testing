@@ -1,0 +1,31 @@
+version: '3.7'
+
+services:
+  server:
+    image: djfarrelly/maildev
+    container_name: mail   
+    ports:
+      - 10025:10025
+    networks:      
+      - traefik-public
+    command: ["bin/maildev", "--web", "80", "--smtp", "10025", "--outgoing-secure"]     #djfarrelly/maildev
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      labels:        
+        - traefik.enable=true        
+        - traefik.docker.network=traefik-public
+        - traefik.constraint-label=traefik-public                
+        - traefik.http.routers.${NAME}-http.entrypoints=web
+        - traefik.http.routers.${NAME}-http.service=${NAME}
+        - traefik.http.routers.${NAME}-http.rule=Host(`${NAME}.${DOMAIN}`)
+        - traefik.http.services.${NAME}.loadbalancer.server.port=80
+        - traefik.http.routers.smtp-${NAME}-http.entrypoints=web
+        - traefik.http.routers.smtp-${NAME}-http.rule=Host(`smtp.${DOMAIN}`)
+        - traefik.http.routers.smtp-${NAME}-http.service=smtp-${NAME}
+        - traefik.http.services.smtp-${NAME}.loadbalancer.server.port=10025
+networks:
+  traefik-public:
+    external: true
+  

@@ -1,0 +1,33 @@
+version: '3.7'
+services:
+  nexus:    
+    image: sonatype/nexus3:latest
+    #ports:
+    #  - 8081:8081
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager    
+      labels:        
+        - traefik.enable=true                        
+        - traefik.docker.network=traefik-public
+        - traefik.constraint-label=traefik-public           
+        - traefik.http.routers.${NAME:-nexus}-http.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.${NAME:-nexus}-http.service=${NAME:-nexus}
+        - traefik.http.routers.${NAME:-nexus}-http.entrypoints=web        
+        - traefik.http.services.${NAME:-nexus}.loadbalancer.server.port=5000      
+        - traefik.http.routers.${NAME_ADMIN:-nexus-admin}-http.rule=Host(`${DOMAIN_ADMINN}`)
+        - traefik.http.routers.${NAME_ADMIN:-nexus-admin}-http.service=${NAME_ADMIN:-nexus-admin}
+        - traefik.http.routers.${NAME_ADMIN:-nexus-admin}-http.entrypoints=web        
+        - traefik.http.services.${NAME_ADMIN:-nexus-admin}.loadbalancer.server.port=8081                                       
+    volumes:            
+      - data:/nexus-data   
+    networks:
+      - traefik-public 
+
+volumes:
+  data:
+
+networks:
+  traefik-public:
+    external: true

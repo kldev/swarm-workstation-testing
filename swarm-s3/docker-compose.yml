@@ -1,0 +1,39 @@
+version: '3.7'
+
+services:
+  minio:
+    image: minio/minio:RELEASE.2021-11-24T23-19-33Z
+    networks:
+     - traefik-public
+    environment: 
+      MINIO_ROOT_USER: s3admin
+      MINIO_ROOT_PASSWORD: s3admin123
+      MINIO_REGION: "us-east-1"
+    volumes:
+      - storage:/storage
+    command: server /storage --console-address ":9090"
+    deploy:
+      placement:
+        constraints:
+          - node.role==manager
+      labels:        
+        - traefik.enable=true        
+        - traefik.docker.network=traefik-public
+        - traefik.constraint-label=traefik-public   
+
+        - traefik.http.routers.${NAME:-s3}-http.entrypoints=web
+        - traefik.http.routers.${NAME:-s3}-http.rule=Host(`${DOMAIN}`)
+        - traefik.http.routers.${NAME:-s3}-http.service=${NAME:-s3}
+        - traefik.http.services.${NAME:-s3}.loadbalancer.server.port=9000
+
+        - traefik.http.routers.${NAME_ADMIN:-s3admin}-http.entrypoints=web
+        - traefik.http.routers.${NAME_ADMIN:-s3admin}-http.service=${NAME_ADMIN:-s3admin}
+        - traefik.http.routers.${NAME_ADMIN:-s3admin}-http.rule=Host(`${DOMAIN_ADMIN}`)        
+        - traefik.http.services.${NAME_ADMIN:-s3admin}.loadbalancer.server.port=9090
+volumes:
+  storage:
+
+networks:
+  traefik-public:
+    external: true
+
